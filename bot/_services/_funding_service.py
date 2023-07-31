@@ -1,5 +1,4 @@
 import ccxt
-from pprint import pprint
 from pystreamapi import Stream
 from collections import namedtuple
 from bot._config._env import variables as env
@@ -8,7 +7,7 @@ Funding = namedtuple('Funding', ['symbol', 'rate', 'timestamp'])
 FundingWithOrderBook = namedtuple('FundingWithOrderBook', ['symbol', 'rate', 'timestamp', 'order_book'])
 FundingWithVolume = namedtuple('FundingWithVolume', ['symbol', 'rate', 'timestamp', 'volume'])
 
-minimum_funding_percentage = env['MINIMUN_FUNDING_PERCENTAGE']
+minimum_funding_percentage = env['MINIMUM_FUNDING_PERCENTAGE']
 price_deviation_percentage = env['PRICE_DEVIATION_PERCENTAGE']
 
 
@@ -21,7 +20,8 @@ def fetch_order_book(platform, funding: Funding) -> FundingWithOrderBook:
         order_book = platform.fetch_order_book(symbol=funding.symbol, limit=10)
     except ccxt.ExchangeError:
         print(f'>>> Can\'t fetch order book for: {funding.symbol}')
-    return FundingWithOrderBook(funding.symbol, funding.rate, funding.timestamp, order_book)
+    else:
+        return FundingWithOrderBook(funding.symbol, funding.rate, funding.timestamp, order_book)
 
 
 def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_percentage: float) -> FundingWithVolume:
@@ -53,6 +53,7 @@ def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_
 
     return FundingWithVolume(funding.symbol, funding.rate, funding.timestamp, round(volume, 3))
 
+
 def find_best_funding(exchange: ccxt.Exchange) -> list[FundingWithVolume]:
 
     """Searching best funding pairs"""
@@ -65,26 +66,17 @@ def find_best_funding(exchange: ccxt.Exchange) -> list[FundingWithVolume]:
         print(exchange.id, 'failed to fetch funding rates due to exchange error:', str(e))
     except Exception as e:
         print(exchange.id, 'failed to fetch funding rates with:', str(e))
-
-    return Stream.of(funding_rates.items()) \
-        .map(lambda item: Funding(symbol=item[0], rate=item[1]['fundingRate'], timestamp=item[1]['fundingTimestamp'])) \
-        .filter(lambda funding: is_funding_rate_valid(funding.rate, minimum_funding_percentage)) \
-        .map(lambda funding: fetch_order_book(exchange, funding)) \
-        .filter(lambda funding: funding.order_book) \
-        .map(lambda funding: calculate_approximate_volume(funding, price_deviation_percentage)) \
-        .sorted(lambda a, b: a.rate > b.rate) \
-        .to_list()
+    else:
+        return Stream.of(funding_rates.items()) \
+            .map(lambda item: Funding(symbol=item[0], rate=item[1]['fundingRate'], timestamp=item[1]['fundingTimestamp'])) \
+            .filter(lambda funding: is_funding_rate_valid(funding.rate, minimum_funding_percentage)) \
+            .map(lambda funding: fetch_order_book(exchange, funding)) \
+            .filter(lambda funding: funding.order_book) \
+            .map(lambda funding: calculate_approximate_volume(funding, price_deviation_percentage)) \
+            .sorted(lambda a, b: a.rate > b.rate) \
+            .to_list()
 
 
 def output_info(data: list):
+    pass
 
-    """Output of information about found funding"""
-
-    if data[0]:
-        count = 1
-        for symbol in data[1]:
-
-            print(f"""\n{count}. {symbol}
-            Funding rate: {data[0][symbol]['fundingRate'] * 100} %
-            Approximate volume(USDT): {data[0][symbol]['Approximate volume']}\n""")
-            count += 1
