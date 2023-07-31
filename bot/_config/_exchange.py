@@ -1,5 +1,5 @@
 import ccxt
-from _env import variables
+from ._env import variables
 
 binance = ccxt.binanceusdm({
     'apiKey': variables['API_KEY'],
