@@ -1,4 +1,5 @@
 import ccxt
+from pprint import pprint
 from pystreamapi import Stream
 from collections import namedtuple
 from bot._config._env import variables as env
@@ -19,15 +20,17 @@ def fetch_order_book(platform, funding: Funding) -> FundingWithOrderBook:
     try:
         order_book = platform.fetch_order_book(symbol=funding.symbol, limit=10)
     except ccxt.ExchangeError:
+        order_book = []
         print(f'>>> Can\'t fetch order book for: {funding.symbol}')
-    else:
-        return FundingWithOrderBook(funding.symbol, funding.rate, funding.timestamp, order_book)
+
+    return FundingWithOrderBook(funding.symbol, funding.rate, funding.timestamp, order_book)
 
 
 def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_percentage: float) -> FundingWithVolume:
     CupPair = namedtuple('CupPair', ['price', 'volume'])
 
     order_book = funding.order_book
+
     cup_asks = order_book['asks']
     cup_bids = order_book['bids']
 
@@ -39,7 +42,7 @@ def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_
         .map(lambda pair: pair[0] * pair[1]) \
         .reduce(lambda a, b: a + b) \
         .or_else_get(0)
-    
+
     sum_bids = Stream.of(cup_bids) \
         .filter(lambda pair: pair[0] <= best_cup_bid + (best_cup_bid * price_deviation_percentage)) \
         .map(lambda pair: pair[0] * pair[1]) \
@@ -49,7 +52,7 @@ def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_
     volume = sum_bids + sum_asks
 
     while volume >= 10000:
-        volume /= 5
+            volume /= 5
 
     return FundingWithVolume(funding.symbol, funding.rate, funding.timestamp, round(volume, 3))
 
@@ -77,6 +80,6 @@ def find_best_funding(exchange: ccxt.Exchange) -> list[FundingWithVolume]:
             .to_list()
 
 
-def output_info(data: list):
-    pass
+def sort_rate(data: list):
+    return (for pair_info in data)
 

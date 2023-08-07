@@ -1,12 +1,14 @@
-import mock
+from mock import Mock
+import unittest
 from unittest import TestCase
 from bot._services._funding_service import find_best_funding
 
+
 class TestBinanceFundingService(TestCase):
-    
+
     def test_should_find_best_funding(self):
         # Given
-        exchange_mock = mock.Mock()
+        exchange_mock = Mock()
         exchange_mock.fetchFundingRates.return_value = {
             'USDT:ETH': {'fundingRate': 1.5, 'symbol': 'USDT:ETH', 'fundingTimestamp': 122},
             'USDT:BTC': {'fundingRate': 2.5, 'symbol': 'USDT:BTC', 'fundingTimestamp': 123}
@@ -40,8 +42,15 @@ class TestBinanceFundingService(TestCase):
             'timestamp': 1690618415413
         }
 
-        # When
         result = find_best_funding(exchange_mock)
 
-        # Then TODO add asserts
-        print(f'results : {result}')
+        self.assertIsInstance(result, list)
+
+        from bot._services._funding_service import FundingWithVolume
+        self.assertTrue(all(isinstance(item, FundingWithVolume) for item in result))
+
+        print(f'results: {result}')
+
+
+if __name__ == '__main__':
+    unittest.main()
