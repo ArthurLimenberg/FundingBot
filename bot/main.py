@@ -12,7 +12,7 @@ if __name__ == '__main__':
     print(Fore.LIGHTYELLOW_EX + '\nSearching funding:')
     best_funding = find_best_funding(binance)
     pprint(best_funding)
-    info = buy(binance, best_funding)
-    pprint(info)
+    #info = buy(binance, best_funding)
+    #pprint(info)
 
 

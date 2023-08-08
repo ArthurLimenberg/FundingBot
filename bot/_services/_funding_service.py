@@ -30,29 +30,30 @@ def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_
     CupPair = namedtuple('CupPair', ['price', 'volume'])
 
     order_book = funding.order_book
-
     cup_asks = order_book['asks']
     cup_bids = order_book['bids']
+    if cup_asks and cup_bids:
+        best_cup_ask = order_book['asks'][0][0]
+        best_cup_bid = order_book['bids'][0][0]
 
-    best_cup_ask = order_book['asks'][0][0]
-    best_cup_bid = order_book['bids'][0][0]
+        sum_asks = Stream.of(cup_asks) \
+            .filter(lambda pair: pair[0] <= best_cup_ask + (best_cup_ask * price_deviation_percentage)) \
+            .map(lambda pair: pair[0] * pair[1]) \
+            .reduce(lambda a, b: a + b) \
+            .or_else_get(0)
 
-    sum_asks = Stream.of(cup_asks) \
-        .filter(lambda pair: pair[0] <= best_cup_ask + (best_cup_ask * price_deviation_percentage)) \
-        .map(lambda pair: pair[0] * pair[1]) \
-        .reduce(lambda a, b: a + b) \
-        .or_else_get(0)
+        sum_bids = Stream.of(cup_bids) \
+            .filter(lambda pair: pair[0] <= best_cup_bid + (best_cup_bid * price_deviation_percentage)) \
+            .map(lambda pair: pair[0] * pair[1]) \
+            .reduce(lambda a, b: a + b) \
+            .or_else_get(0)
 
-    sum_bids = Stream.of(cup_bids) \
-        .filter(lambda pair: pair[0] <= best_cup_bid + (best_cup_bid * price_deviation_percentage)) \
-        .map(lambda pair: pair[0] * pair[1]) \
-        .reduce(lambda a, b: a + b) \
-        .or_else_get(0)
+        volume = sum_bids + sum_asks
 
-    volume = sum_bids + sum_asks
-
-    while volume >= 10000:
+        while volume >= 10000:
             volume /= 5
+    else:
+        volume = []
 
     return FundingWithVolume(funding.symbol, funding.rate, funding.timestamp, round(volume, 3))
 
@@ -76,10 +77,8 @@ def find_best_funding(exchange: ccxt.Exchange) -> list[FundingWithVolume]:
             .map(lambda funding: fetch_order_book(exchange, funding)) \
             .filter(lambda funding: funding.order_book) \
             .map(lambda funding: calculate_approximate_volume(funding, price_deviation_percentage)) \
-            .sorted(lambda a, b: a.rate > b.rate) \
+            .filter(lambda funding: funding.volume) \
+            .sorted(lambda a, b: 1 if abs(a.rate) < abs(b.rate) else -1) \
             .to_list()
 
-
-def sort_rate(data: list):
-    return (for pair_info in data)
 
