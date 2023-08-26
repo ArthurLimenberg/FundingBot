@@ -53,7 +53,7 @@ def calculate_approximate_volume(funding: FundingWithOrderBook, price_deviation_
         while volume >= 10000:
             volume /= 5
     else:
-        volume = []
+        volume = 0
 
     return FundingWithVolume(funding.symbol, funding.rate, funding.timestamp, round(volume, 3))
 
@@ -78,7 +78,7 @@ def find_best_funding(exchange: ccxt.Exchange) -> list[FundingWithVolume]:
             .filter(lambda funding: funding.order_book) \
             .map(lambda funding: calculate_approximate_volume(funding, price_deviation_percentage)) \
             .filter(lambda funding: funding.volume) \
-            .sorted(lambda a, b: 1 if abs(a.rate) < abs(b.rate) else -1) \
+            .sorted(lambda a, b: -(abs(a.rate) - abs(b.rate))) \
             .to_list()
 
 
