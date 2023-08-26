@@ -4,8 +4,7 @@ from pprint import pprint
 from _services._funding_service import find_best_funding
 from _config._exchange import binance
 from _services._trading_service import entering
-from pystreamapi import Stream
-from collections import namedtuple
+
 
 colorama.init()
 
