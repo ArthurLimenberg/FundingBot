@@ -13,7 +13,8 @@ price_deviation_percentage = env['PRICE_DEVIATION_PERCENTAGE']
 
 
 def is_funding_rate_valid(funding_rate: float, minimum_funding_percentage: float) -> bool:
-    return (minimum_funding_percentage * -1) > funding_rate or funding_rate > minimum_funding_percentage
+    return ((minimum_funding_percentage * -1) > funding_rate >= -0.01) \
+        or (0.01 >= funding_rate > minimum_funding_percentage)
 
 
 def fetch_order_book(platform, funding: Funding) -> FundingWithOrderBook:
